@@ -1,0 +1,31 @@
+[{
+		"domain": "hit.yuketang.cn",
+		"name": "sessionid",
+		"path": "/",
+		"value": "替换为数值"
+	},
+	{
+		"domain": "hit.yuketang.cn",
+		"name": "csrftoken",
+		"path": "/",
+		"value": "替换为数值"
+	},
+	{
+		"domain": "hit.yuketang.cn",
+		"name": "platform_id",
+		"path": "/",
+		"value": "替换为数值"
+	},
+	{
+		"domain": "hit.yuketang.cn",
+		"name": "university_id",
+		"path": "/",
+		"value": "替换为数值"
+	},
+	{
+		"domain": "hit.yuketang.cn",
+		"name": "user_role",
+		"path": "/",
+		"value": "替换为数值"
+	}
+]
