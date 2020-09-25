@@ -12,6 +12,7 @@ selenium chrome驱动 镜像地址: http://npm.taobao.org/mirrors/selenium
 说明：使用参数 CookieMode 可以在cookie，json 写入cookie并进行快捷登录
 """
 import os
+import re
 
 """
 下一步目标：
@@ -36,7 +37,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 class AutoYuketangforHIT:
     home_url = 'https://hit.yuketang.cn/pro/portal/home/'
     course_url = ""
-
+    courseID=""
     def __init__(self, mode):
 
         isCookieMode = False
@@ -155,6 +156,9 @@ class AutoYuketangforHIT:
         :param location: 保存网课连接的文件地址
         :return:
         """
+
+        self.courseID="$"+re.match("https://[a-zA-Z0-9.]*/[a-zA-Z]*/[a-zA-Z]*/[a-zA-Z0-9]*/([0-9]+)/score", self.driver.current_url).group(1)+"$"
+        print("当前课程ID："+self.courseID)
         """如果文件不存在的话"""
         if not os.path.exists(location):
             print("URL文件不存在！创建文件")
@@ -166,12 +170,13 @@ class AutoYuketangforHIT:
         last_line = ""
         if len(lines) != 0:
             last_line = lines[-1]  # 取最后一行
-        if "构建完成" not in last_line:
+        if self.courseID  not in last_line:
+            print("URL未构建或构建不完全")
             fp.close()
             self.get_list(location)
         else:
             fp.close()
-            print("已从历史记录中获取链接")
+            print("检测到校验位，已从历史记录中获取链接")
 
         print("全部链接已就绪")
 
@@ -202,14 +207,14 @@ class AutoYuketangforHIT:
                         # browser.switch_to_window(newhandle) 旧版本
                         self.driver.switch_to.window(newhandle)
                         current_url = (self.driver.current_url + '\r')
-                        print(self.driver.current_url)
                         if "/video/" in self.driver.current_url:
+                            print(self.driver.current_url)
                             fp.writelines(current_url)
                             fp.flush()
                         self.driver.close()
                         self.driver.switch_to.window(handle)
                         time.sleep(0.5)
-            fp.writelines('构建完成')
+            fp.writelines(self.courseID)
             fp.flush()
             fp.close()
         return
@@ -219,7 +224,7 @@ class AutoYuketangforHIT:
         with open(location, 'r', encoding='utf-8') as fp:
             url_content = fp.readlines()
             for url in url_content:
-                if "构建完成" not in url:
+                if self.courseID not in url:
                     url = url[:-1]
                     url_list.append(url)
             fp.close()
