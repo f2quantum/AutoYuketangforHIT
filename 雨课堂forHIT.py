@@ -282,6 +282,7 @@ class AutoYuketangforHIT:
         if (sysstr == "Linux"):  # for Linux
             chrome_options.add_argument('--headless')  # 16年之后，chrome给出的解决办法，抢了PhantomJS饭碗
             chrome_options.add_argument('--no-sandbox')  # root用户不加这条会无法运行
+            chrome_options.add_argument('--disable-gpu')
             chrome_options.add_argument("--mute-audio")  # 静音播放
 
         else:  # for other OS
