@@ -1,20 +1,23 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
-#@Time  : 2020/9/22 18:36
-#@Author: f
-#@File  : 雨课堂forHIT.py
+# @Time  : 2020/9/22 18:36
+# @Author: f
+# @File  : 雨课堂forHIT.py
 
 """
 代码基于 https://github.com/lingyan12/yuketang 和https://github.com/xrervip/HIT_auto_report/blob/master/HIT_auto_report.py 进行修改
-依赖于python运行环境+chorme+selenium chrome驱动
+依赖于python运行环境+chrome+selenium chrome驱动
 selenium chrome驱动 镜像地址: http://npm.taobao.org/mirrors/selenium
 
 说明：使用参数 CookieMode 可以在cookie，json 写入cookie并进行快捷登录
 """
+import os
+
 """
 下一步目标：
-1.增加多线程播放配置
+1.增加多线程播放功能
 2.提高稳定性和健壮性
+3.倍速播放未完善
 """
 import platform
 import json
@@ -30,23 +33,22 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
 
-class auto雨课堂:
+class AutoYuketangforHIT:
+    home_url = 'https://hit.yuketang.cn/pro/portal/home/'
+    course_url = ""
 
-    home_url='https://hit.yuketang.cn/pro/portal/home/'
-    course_url= ""
+    def __init__(self, mode):
 
-    def __init__(self,mode):
-
-        isCookieMode=False
+        isCookieMode = False
         if "CookieMode" in mode:
-            isCookieMode=True
+            isCookieMode = True
 
         self.setDriver()
 
         """使用CookieMode登录"""
         self.loadCookie(isCookieMode)
 
-        self.readFromJSON()#从JSON读入URL
+        self.readFromJSON()  # 从JSON读入URL
 
         self.load_url(self.course_url)
 
@@ -54,17 +56,16 @@ class auto雨课堂:
 
         while True:
             time.sleep(0.1)
-            if self.driver.current_url==self.course_url:
+            if self.driver.current_url == self.course_url:
                 print("成功登录雨课堂")
                 break
 
         self.prepare_list('url_list.txt')
         self.PlayAllVideo('url_list.txt')
 
-
         self.driver.quit()
 
-    def PlayAllVideo(self,location):
+    def PlayAllVideo(self, location):
         """
         播放全部的视频
         :param location:  文件的位置
@@ -78,46 +79,43 @@ class auto雨课堂:
 
         print("完成url_list中全部任务")
 
-
-    def PlayVideo(self,url):
+    def PlayVideo(self, url):
         """
         播放全部的视频
         :param url: 网课的URL
         :return:
         """
         print(url)
-        self.load_and_wait_url(url)  #切换到新的窗口
+        self.load_and_wait_url(url)  # 切换到新的窗口
 
-        title=self.wait_and_getText("/html/body/div[4]/div[2]/div[2]/div[3]/div/div[1]/div/div[2]/span")
-        print("正在播放:"+title)
+        title = self.wait_and_getText("/html/body/div[4]/div[2]/div[2]/div[3]/div/div[1]/div/div[2]/span")
+        print("正在播放:" + title)
 
         try:
             work_persent = self.wait_and_getText(
                 '/html/body/div[4]/div[2]/div[2]/div[3]/div/div[2]/div/section[1]/div[2]/div/div/span')
         except TimeoutException:
-            work_persent="任务进度元素加载失败" #元素加载失败
+            work_persent = "任务进度元素加载失败"  # 元素加载失败
 
-
-
-
-        print("任务进度："+work_persent)
+        print("任务进度：" + work_persent)
         time.sleep(0.5)
 
         """该小节播放完成/不需要播放"""
-        if "100%" in work_persent :
+        if "100%" in work_persent:
             return
 
-
         """"需要播放视频的情况"""
-        self.wait_and_getText("/html/body/div[4]/div[2]/div[2]/div[3]/div/div[2]/div/section[2]/div[1]/div/div/div/xt-wrap/xt-controls/xt-inner/xt-time/span[2]")
+        self.wait_and_getText(
+            "/html/body/div[4]/div[2]/div[2]/div[3]/div/div[2]/div/section[2]/div[1]/div/div/div/xt-wrap/xt-controls/xt-inner/xt-time/span[2]")
         """开始播放"""
         button = WebDriverWait(self.driver, 10, poll_frequency=2).until(ec.element_to_be_clickable(
             (By.XPATH, '//*[@id="video-box"]/div/xt-wrap/xt-controls/xt-inner/xt-playbutton')))
 
         """设置2倍速度"""
         if button:
-            speed_button = WebDriverWait(self.driver, 10, poll_frequency=1).until(ec.presence_of_element_located((By.XPATH,
-                                                                                                   '//*[@id="video-box"]/div/xt-wrap/xt-controls/xt-inner/xt-speedbutton/xt-speedvalue')))
+            speed_button = WebDriverWait(self.driver, 10, poll_frequency=1).until(
+                ec.presence_of_element_located((By.XPATH,
+                                                '//*[@id="video-box"]/div/xt-wrap/xt-controls/xt-inner/xt-speedbutton/xt-speedvalue')))
             speed_2 = self.driver.find_element_by_xpath(
                 '//*[@id="video-box"]/div/xt-wrap/xt-controls/xt-inner/xt-speedbutton/xt-speedlist/ul/li[1]')
             ac(self.driver).move_to_element(speed_button).perform()
@@ -131,58 +129,62 @@ class auto雨课堂:
                 '//*[@id="video-box"]/div/xt-wrap/xt-controls/xt-inner/xt-time/span[2]').text.split(':')
             cur = (int(cur_time[1]) * 60 + int(cur_time[2]))
             ful = (int(full_time[1]) * 60 + int(full_time[2]))
-            self.wait_video(cur,ful)
+            self.wait_video(cur, ful)
             time.sleep(5)
 
         return
 
-    def wait_video(self,cur,ful):
+    def wait_video(self, cur, ful):
         """
         等待视频播放完成
         :param cur: 当前时间
         :param ful: 总时间
         :return:
         """
-        count=cur
-        while cur<ful:
+        count = cur
+        while cur < ful:
             time.sleep(1)
-            cur=cur+1
+            cur = cur + 1
             print("当前时间：" + str(cur) + "总时间" + str(ful))
 
         return
-    def prepare_list(self,location):
+
+    def prepare_list(self, location):
         """
         为播放准备连接
         :param location: 保存网课连接的文件地址
         :return:
         """
-        with open(location,'r+',encoding='utf-8') as fp:
-            lines = fp.readlines()  # 读取所有行
-            last_line=""
-            if len(lines)!=0:
-                last_line = lines[-1]  # 取最后一行
-            if "构建完成" not in last_line:
-                fp.close()
-                self.get_list(location)
-            else:
-                fp.close()
-                print("已从历史记录中获取链接")
 
-            print("全部链接已就绪")
+
+        fp=open(location, 'w+', encoding='utf-8')
+        lines = fp.readlines()  # 读取所有行
+        last_line = ""
+        if len(lines) != 0:
+            last_line = lines[-1]  # 取最后一行
+        if "构建完成" not in last_line:
+            fp.close()
+            self.get_list(location)
+        else:
+            fp.close()
+            print("已从历史记录中获取链接")
+
+        print("全部链接已就绪")
 
         return
 
-    def get_list(self,location):
+    def get_list(self, location):
         """
         爬取全部网课连接
         :param location:保存网课连接的文件地址
         :return:
         """
-        with open(location,'w+',encoding='utf-8') as fp:
+        with open(location, 'w+', encoding='utf-8') as fp:
 
             self.driver.get(self.course_url)
-            self.wait_element_path("/html/body/div[4]/div[2]/div[2]/div[3]/div/div[2]/div[2]/section[2]/div[2]/ul/li[1]/div[1]/div/span")
-            botton=self.driver.find_elements(By.XPATH,"//span[@class='cursorpoint unit-name-hover']")
+            self.wait_element_path(
+                "/html/body/div[4]/div[2]/div[2]/div[3]/div/div[2]/div[2]/section[2]/div[2]/ul/li[1]/div[1]/div/span")
+            botton = self.driver.find_elements(By.XPATH, "//span[@class='cursorpoint unit-name-hover']")
             print("正在爬取全部视频网页连接")
             for i in botton:
                 i.click()
@@ -208,9 +210,9 @@ class auto雨课堂:
             fp.close()
         return
 
-    def read_url_list(self,location):
+    def read_url_list(self, location):
         url_list = []
-        with open(location, 'r',encoding='utf-8') as fp:
+        with open(location, 'r', encoding='utf-8') as fp:
             url_content = fp.readlines()
             for url in url_content:
                 if "构建完成" not in url:
@@ -219,7 +221,7 @@ class auto雨课堂:
             fp.close()
         return url_list
 
-    def login(self,isCookieMode):
+    def login(self, isCookieMode):
         """
           雨课堂登录
           :param isCookieMode:  如果使用cookie，则不需要登录
@@ -232,17 +234,18 @@ class auto雨课堂:
 
         self.load_url(self.home_url)
         self.wait_element_path('/html/body/div[4]/div[2]/div[2]/div[3]/div/div[1]/div/div/div[2]/button')
-        self.driver.find_element_by_xpath('/html/body/div[4]/div[2]/div[2]/div[3]/div/div[1]/div/div/div[2]/button').click()
+        self.driver.find_element_by_xpath(
+            '/html/body/div[4]/div[2]/div[2]/div[3]/div/div[1]/div/div/div[2]/button').click()
         while True:
             self.load_url(self.course_url)
             time.sleep(5)
             if self.course_url == self.driver.current_url:
                 return
 
-    def loadCookie(self,isCookieMode):
+    def loadCookie(self, isCookieMode):
         """
         从cookie载入登录信息
-        :return:
+        :return: 是否成功载入cookie
         """
         if not isCookieMode:
             return
@@ -253,7 +256,6 @@ class auto雨课堂:
         except FileNotFoundError:
             print("未检测到Cookie.json，需要进行手动登录")
             return False
-
 
         """载入cookie"""
         cookies = json.load(f)
@@ -276,15 +278,14 @@ class auto雨课堂:
         if (sysstr == "Linux"):  # for Linux
             chrome_options.add_argument('--headless')  # 16年之后，chrome给出的解决办法，抢了PhantomJS饭碗
             chrome_options.add_argument('--no-sandbox')  # root用户不加这条会无法运行
-            chrome_options.add_argument("--mute-audio") #静音播放
+            chrome_options.add_argument("--mute-audio")  # 静音播放
 
         else:  # for other OS
-            chrome_options.add_argument("--mute-audio") #静音播放
+            chrome_options.add_argument("--mute-audio")  # 静音播放
 
         self.driver = webdriver.Chrome(chrome_options=chrome_options)
 
         print("成功配置chrome驱动")
-
 
     def load_and_wait_url(self, target_url, timeout=10.0):
         """
@@ -311,15 +312,7 @@ class auto雨课堂:
         )
         return element
 
-    def wait_and_send_keys(self, element_id, keys):
-        """
-        等待相应id的元素加载完成后输入字符
-        :param element_id: 元素id
-        :param keys: 需要输入的字符
-        :return:
-        """
-        element = self.wait_element_id(element_id)
-        element.send_keys(keys)
+
 
     def wait_and_click(self, element_xpath):
         """
@@ -346,7 +339,7 @@ class auto雨课堂:
         """
         try:
             f = open("./config.json", 'r', encoding='utf-8')
-        except FileNotFoundError :
+        except FileNotFoundError:
             print("config.json文件不存在，请检查！")
 
         data = json.load(f)
@@ -361,7 +354,7 @@ class auto雨课堂:
 
 if __name__ == '__main__':
 
-    mode=""
+    mode = ""
     if len(sys.argv) == 2:
-        mode=sys.argv[1]
-    auto雨课堂(mode)
+        mode = sys.argv[1]
+    AutoYuketangforHIT(mode)
