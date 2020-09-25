@@ -155,9 +155,13 @@ class AutoYuketangforHIT:
         :param location: 保存网课连接的文件地址
         :return:
         """
+        """如果文件不存在的话"""
+        if not os.path.exists(location):
+            print("URL文件不存在！创建文件")
+            fp=open(location, 'w+', encoding='utf-8')
+            fp.close()
 
-
-        fp=open(location, 'w+', encoding='utf-8')
+        fp=open(location, 'r+', encoding='utf-8')
         lines = fp.readlines()  # 读取所有行
         last_line = ""
         if len(lines) != 0:
